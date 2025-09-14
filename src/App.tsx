@@ -1,5 +1,15 @@
 import { RotateCcw } from "lucide-react";
+import { useCallback } from "react";
 import { Toaster } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "./components/animate-ui/radix/dialog";
 import {
   Tooltip,
   TooltipContent,
@@ -11,23 +21,48 @@ import { Button } from "./components/ui/button";
 import { clearAllLocalStorage } from "./lib/utils";
 
 function App() {
-  return (
-    <>
-      <Toaster position="top-right" />
-      <ModeToggle />
-      <Tooltip>
-        <TooltipTrigger asChild>
+  const ModalReset = () => {
+    const handleUserIsOkay = useCallback(() => {
+      clearAllLocalStorage();
+      window.location.reload();
+    }, []);
+
+    return (
+      <Dialog>
+        <DialogTrigger asChild>
           <Button
             size={"icon"}
             variant="destructive"
             className="absolute top-16 right-4 z-20"
-            onClick={() => {
-              clearAllLocalStorage();
-              window.location.reload();
-            }}
           >
             <RotateCcw />
           </Button>
+        </DialogTrigger>
+        <DialogContent from="top">
+          <DialogHeader>
+            <DialogTitle>Are You Sure?</DialogTitle>
+            <DialogDescription>
+              By clicking reset, it will reset all state of the app.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex justify-end">
+            <Button variant="destructive" onClick={handleUserIsOkay}>
+              Continue
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  };
+
+  return (
+    <>
+      <Toaster position="top-right" />
+      <ModalReset />
+      <ModeToggle />
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <ModalReset />
         </TooltipTrigger>
         <TooltipContent>
           <p>Reset</p>
