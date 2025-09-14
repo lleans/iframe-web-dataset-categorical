@@ -26,6 +26,7 @@ import {
 import { Input } from "./ui/input";
 import { Table, TableBody, TableCell, TableRow } from "./ui/table";
 import { Textarea } from "./ui/textarea";
+import { TypographyMuted } from "./ui/typography/muted";
 
 const isUrl = (v: unknown) =>
   typeof v === "string" && (v.includes("http://") || v.includes("https://"));
@@ -102,14 +103,18 @@ const DetailCard = ({
     const str = v == null ? "" : String(v);
     const useTextarea = str.includes("\n") || str.length > 120;
 
-    // Make _id read-only
-    if (k === "_id") {
-      return <span className="break-all">{str}</span>;
-    }
-
-    // Make the selected iframe key read-only (non-editable)
+    // Make read-only
     if (k === selectedKeys?.iframe) {
-      return <span className="break-all">{str}</span>;
+      return (
+        <a
+          href={str}
+          target="_blank"
+          rel="noreferrer"
+          className="underline hover:text-primary break-words"
+        >
+          {str}
+        </a>
+      );
     }
 
     if (isUrl(v)) {
@@ -145,7 +150,7 @@ const DetailCard = ({
   };
 
   return (
-    <Card className="absolute right-4 bottom-4 w-96 max-h-[80vh] z-20 shadow-lg flex flex-col">
+    <Card className="absolute right-4 max-h-[90vh] bottom-4 w-96 z-20 shadow-lg flex flex-col overflow-y-auto">
       <CardHeader>
         <CardTitle>
           {titleKey && item[titleKey] ? (
@@ -175,17 +180,17 @@ const DetailCard = ({
                 className="underline hover:text-primary break-words"
               >
                 {String(item[descKey]).length > 100 ? (
-                  <span title={String(item[descKey])}>
+                  <TypographyMuted>
                     {String(item[descKey]).slice(0, 100)}...
-                  </span>
+                  </TypographyMuted>
                 ) : (
                   String(item[descKey])
                 )}
               </a>
             ) : String(item[descKey]).length > 100 ? (
-              <span title={String(item[descKey])}>
+              <TypographyMuted>
                 {String(item[descKey]).slice(0, 100)}...
-              </span>
+              </TypographyMuted>
             ) : (
               String(item[descKey])
             )
@@ -218,19 +223,21 @@ const DetailCard = ({
 
         <div className="flex flex-col">
           <strong>All fields (editable):</strong>
-          <div className="mt-2 max-h-48 overflow-auto overflow-x-hidden">
-            <Table className="w-full table-fixed">
+          <div className="mt-2 max-h-70 overflow-y-auto overflow-x-hidden">
+            <Table className="w-full table-fixed wrap-anywhere">
               <TableBody>
-                {Object.entries(item).map(([k, v]) => (
-                  <TableRow key={k}>
-                    <TableCell className="font-medium w-1/4 py-2 align-top truncate">
-                      {k}
-                    </TableCell>
-                    <TableCell className="w-2/3 py-2">
-                      {renderValueInput(k, v)}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {Object.entries(item)
+                  .filter(([k]) => k !== "_id")
+                  .map(([k, v]) => (
+                    <TableRow key={k}>
+                      <TableCell className="font-medium w-1/4 py-2 align-top truncate">
+                        {k}
+                      </TableCell>
+                      <TableCell className="w-2/3 py-2">
+                        {renderValueInput(k, v)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
               </TableBody>
             </Table>
           </div>
@@ -246,9 +253,9 @@ const DetailCard = ({
             <Button onClick={onNext} variant="outline" size="sm">
               Next
             </Button>
-            <span className="text-sm text-muted-foreground ml-2">
+            <TypographyMuted>
               {index + 1} / {total}
-            </span>
+            </TypographyMuted>
           </div>
           <div className="flex gap-2">
             <Button onClick={onDownloadCategorized} variant="default" size="sm">
@@ -280,18 +287,16 @@ const DetailCard = ({
                     {isIncluded && <Trash2 />}
                   </Button>
                   {isIncluded && (
-                    <span className="text-xs text-muted-foreground mt-1">
+                    <TypographyMuted>
                       *You need to remove and add first before modifying already
                       added category data.
-                    </span>
+                    </TypographyMuted>
                   )}
                 </div>
               );
             })
           ) : (
-            <span className="text-sm text-muted-foreground">
-              No categories saved
-            </span>
+            <TypographyMuted>No categories saved</TypographyMuted>
           )}
         </div>
 
@@ -532,7 +537,19 @@ export const MainPage = () => {
   };
 
   const handleDownloadCategorized = () => {
-    const blob = new Blob([JSON.stringify(categorized, null, 2)], {
+    // Create a cleaned version of categorized data without _id fields
+    const cleanedCategorized = Object.fromEntries(
+      Object.entries(categorized).map(([category, items]) => [
+        category,
+        items.map((item) => {
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { _id, ...rest } = item as Record<string, unknown>;
+          return rest;
+        }),
+      ])
+    );
+
+    const blob = new Blob([JSON.stringify(cleanedCategorized, null, 2)], {
       type: "application/json",
     });
     const url = URL.createObjectURL(blob);
